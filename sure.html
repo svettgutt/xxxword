@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Svett Gutt's Cryptic XXXword</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Abril+Fatface&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --black: #000;
+  --red: #ff1a1a;
+  --deep-red: #6e0906;
+  --tile: clamp(1.45rem, 5.2vw, 2.6rem);
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; min-height: 100%; }
+body {
+  background: var(--black);
+  color: var(--red);
+  font-family: "Space Grotesk", "Helvetica Neue", Arial, sans-serif;
+  line-height: 1.5;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  padding: 2rem 1.25rem 3rem;
+}
+header { text-align: center; margin-bottom: 3rem; }
+
+/* Title built from crossword tiles */
+.title { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.9rem 1.4rem; margin: 0; }
+.word { display: flex; gap: 3px; }
+.tile {
+  width: var(--tile); height: var(--tile);
+  border: 2px solid var(--red);
+  display: grid; place-items: center;
+  font-family: "Abril Fatface", Georgia, serif;
+  font-size: calc(var(--tile) * 0.62);
+  line-height: 1;
+}
+.tile.x { background: var(--red); color: var(--black); }
+
+main {
+  flex: 1; width: 100%; max-width: 38rem; margin: 0 auto;
+  display: flex; flex-direction: column; justify-content: center; align-items: center;
+  text-align: center;
+}
+h2 {
+  font-family: "Abril Fatface", Georgia, serif;
+  font-weight: 400;
+  font-size: clamp(1.7rem, 5vw, 2.5rem);
+  line-height: 1.15;
+  margin: 0 0 2rem;
+  max-width: 24ch;
+}
+.long { max-width: 30ch; }
+.choices { display: flex; flex-wrap: wrap; gap: 1rem; justify-content: center; }
+
+button, .btn {
+  font: inherit; font-weight: 700; font-size: 1.1rem;
+  color: var(--red); background: var(--black);
+  border: 2px solid var(--red);
+  padding: 0.7rem 2rem; min-width: 8rem;
+  cursor: pointer; text-decoration: none;
+  transition: background 0.12s, color 0.12s;
+}
+button:hover, .btn:hover { background: var(--red); color: var(--black); }
+:focus-visible { outline: 3px solid var(--red); outline-offset: 3px; }
+
+input[type="text"] {
+  font: inherit; font-size: 2rem; font-weight: 700; text-align: center;
+  width: 4.5rem; padding: 0.4rem;
+  color: var(--red); background: var(--black);
+  border: 2px solid var(--red);
+  caret-color: var(--red);
+}
+.answer { display: flex; flex-direction: column; align-items: center; gap: 1.5rem; }
+
+/* Loser page */
+.loser h2 { font-size: clamp(2.2rem, 8vw, 4.5rem); max-width: none; margin-bottom: 0; }
+
+/* Crossword placeholder */
+.grid { display: grid; grid-template-columns: repeat(7, var(--tile)); gap: 3px; margin: 0 0 2rem; }
+.grid span { height: var(--tile); border: 2px solid var(--deep-red); }
+.grid span.fill { background: var(--red); border-color: var(--red); }
+
+/* Pop-ups */
+.popup {
+  position: fixed; z-index: 100;
+  width: min(220px, 70vw);
+  background: var(--black);
+  border: 2px solid var(--red);
+  box-shadow: 6px 6px 0 var(--deep-red);
+  padding: 2rem 0.5rem 0.5rem;
+}
+.popup img { display: block; width: 100%; height: auto; }
+.popup .close {
+  position: absolute; top: 0; right: 0;
+  min-width: 0; width: 1.8rem; height: 1.8rem; padding: 0;
+  font-size: 1.1rem; line-height: 1;
+  background: var(--red); color: var(--black); border: 0;
+}
+.popup .close:hover { background: #fff; }
+@media (prefers-reduced-motion: no-preference) {
+  .popup { animation: pop 0.18s ease-out; }
+  @keyframes pop { from { transform: scale(0.85); opacity: 0; } }
+}
+</style>
+</head>
+<body data-need="1" >
+<header><h1 class="title" id="title"></h1></header>
+<main>
+<h2>Are you sure? You don&rsquo;t look it</h2>
+<div class="choices">
+  <button data-go="pi.html" data-set="2">Yes</button>
+  <button data-fail>No</button>
+</div>
+</main>
+<script>
+/* ---------- Config ---------- */
+var SITE_TITLE = "Svett Gutt's Cryptic XXXword";
+var KEY = "svett_stage";
+
+/* Pop-up images. To use your own, drop files in an /images folder and list
+   them here, e.g. "images/popup1.png". Leave the built-in ones as fallbacks. */
+var CUSTOM_POPUP_IMAGES = ["image-1", "image-2", "image-3"];  // file names without extension
+var EXTS = ["png", "jpg", "jpeg", "webp", "PNG", "JPG", "JPEG"];  // tries each until one loads
+
+function svg(body) {
+  return "data:image/svg+xml;utf8," + encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 140" font-family="Arial,sans-serif" font-weight="bold">' +
+    '<rect width="200" height="140" fill="#000"/>' + body + "</svg>");
+}
+var BUILT_IN = [
+  svg('<text x="100" y="45" fill="#ff1a1a" font-size="17" text-anchor="middle">CONGRATULATIONS!</text>' +
+      '<text x="100" y="75" fill="#ff1a1a" font-size="12" text-anchor="middle">You are visitor number</text>' +
+      '<text x="100" y="110" fill="#ff1a1a" font-size="30" text-anchor="middle">1,000,000</text>'),
+  svg('<polygon points="100,15 160,115 40,115" fill="none" stroke="#ff1a1a" stroke-width="6"/>' +
+      '<text x="100" y="98" fill="#ff1a1a" font-size="52" text-anchor="middle">!</text>'),
+  svg('<text x="100" y="55" fill="#ff1a1a" font-size="20" text-anchor="middle">HOT CLUES</text>' +
+      '<text x="100" y="85" fill="#ff1a1a" font-size="20" text-anchor="middle">NEAR YOU</text>' +
+      '<text x="100" y="118" fill="#ff1a1a" font-size="14" text-anchor="middle">(0.4 miles away)</text>'),
+  svg('<g fill="#ff1a1a"><rect x="55" y="25" width="30" height="30"/><rect x="115" y="25" width="30" height="30"/>' +
+      '<rect x="85" y="55" width="30" height="30"/><rect x="55" y="85" width="30" height="30"/>' +
+      '<rect x="115" y="85" width="30" height="30"/></g>'),
+  svg('<text x="100" y="62" fill="#ff1a1a" font-size="16" text-anchor="middle">YOU HAVE WON</text>' +
+      '<text x="100" y="98" fill="#ff1a1a" font-size="26" text-anchor="middle">1 CLUE</text>')
+];
+var POPUP_IMAGES = CUSTOM_POPUP_IMAGES.length ? CUSTOM_POPUP_IMAGES : BUILT_IN;
+
+/* ---------- Progress ---------- */
+function getStage() {
+  try { return parseInt(sessionStorage.getItem(KEY), 10) || 0; } catch (e) { return 0; }
+}
+function setStage(n) { try { sessionStorage.setItem(KEY, String(n)); } catch (e) {} }
+function fail() { setStage(0); location.href = "loser.html"; }
+
+var body = document.body;
+var need = parseInt(body.dataset.need || "0", 10);
+if (body.dataset.reset) setStage(0);
+if (need > getStage()) { location.replace("loser.html"); }  // skipped ahead = loser
+
+/* ---------- Title ---------- */
+(function buildTitle() {
+  var h1 = document.getElementById("title");
+  if (!h1) return;
+  h1.setAttribute("aria-label", SITE_TITLE);
+  document.title = SITE_TITLE;
+  SITE_TITLE.split(" ").forEach(function (w) {
+    var word = document.createElement("span");
+    word.className = "word";
+    word.setAttribute("aria-hidden", "true");
+    w.split("").forEach(function (ch) {
+      var t = document.createElement("span");
+      t.className = "tile" + (w === "XXXword" && ch === "X" ? " x" : "");
+      t.textContent = ch.toUpperCase();
+      word.appendChild(t);
+    });
+    h1.appendChild(word);
+  });
+})();
+
+/* ---------- Buttons ---------- */
+document.addEventListener("click", function (e) {
+  var b = e.target.closest("[data-go], [data-fail]");
+  if (!b) return;
+  if (b.hasAttribute("data-fail")) { fail(); return; }
+  setStage(parseInt(b.dataset.set, 10));
+  location.href = b.dataset.go;
+});
+
+/* Pi answer: 3.1415926535 -> tenth decimal is 5 */
+var piForm = document.getElementById("pi-form");
+if (piForm) {
+  piForm.addEventListener("submit", function (e) {
+    e.preventDefault();
+    var v = document.getElementById("pi-input").value.trim();
+    if (v === "5") { setStage(3); location.href = "final.html"; } else { fail(); }
+  });
+}
+
+/* ---------- Pop-ups ---------- */
+function showPopup() {
+  var img = POPUP_IMAGES[Math.floor(Math.random() * POPUP_IMAGES.length)];
+  var p = document.createElement("div");
+  p.className = "popup";
+  p.setAttribute("role", "dialog");
+  p.setAttribute("aria-label", "Pop-up");
+  var w = Math.min(220, window.innerWidth * 0.7);
+  p.style.left = Math.max(8, Math.random() * (window.innerWidth - w - 16)) + "px";
+  p.style.top = Math.max(8, Math.random() * (window.innerHeight - 220)) + "px";
+  var x = document.createElement("button");
+  x.className = "close";
+  x.setAttribute("aria-label", "Close pop-up");
+  x.textContent = "\u2715";
+  x.addEventListener("click", function () { p.remove(); });
+  var im = document.createElement("img");
+  im.alt = "";
+  if (img.indexOf("data:") === 0) { im.src = img; }
+  else {
+    var tries = 0;
+    im.onerror = function () {
+      tries++;
+      if (tries < EXTS.length) { im.src = img + "." + EXTS[tries]; } else { p.remove(); }
+    };
+    im.src = img + "." + EXTS[0];
+  }
+  p.appendChild(x); p.appendChild(im);
+  document.body.appendChild(p);
+}
+if (!body.dataset.nopopups && need <= getStage()) {
+  var count = 1 + Math.floor(Math.random() * 2);          // 1-2 pop-ups per page
+  for (var i = 0; i < count; i++) {
+    setTimeout(showPopup, 1500 + Math.random() * 5000);
+  }
+}
+</script>
+</body>
+</html>
