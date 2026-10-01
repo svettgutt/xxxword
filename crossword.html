@@ -29,7 +29,11 @@ body {
 header { text-align: center; margin-bottom: 3rem; }
 
 /* Title built from crossword tiles */
-.title { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.9rem 1.4rem; margin: 0; }
+.title { margin: 0; }
+.title a {
+  display: flex; flex-wrap: wrap; justify-content: center; gap: 0.9rem 1.4rem;
+  color: inherit; text-decoration: none;
+}
 .word { display: flex; gap: 3px; }
 .tile {
   width: var(--tile); height: var(--tile);
@@ -169,7 +173,11 @@ if (need > getStage()) { location.replace("loser.html"); }  // skipped ahead = l
 (function buildTitle() {
   var h1 = document.getElementById("title");
   if (!h1) return;
-  h1.setAttribute("aria-label", SITE_TITLE);
+  var link = document.createElement("a");
+  link.href = "index.html";
+  link.setAttribute("aria-label", SITE_TITLE + " (back to start)");
+  link.title = "Back to start";
+  h1.appendChild(link);
   document.title = SITE_TITLE;
   SITE_TITLE.split(" ").forEach(function (w) {
     var word = document.createElement("span");
@@ -181,7 +189,7 @@ if (need > getStage()) { location.replace("loser.html"); }  // skipped ahead = l
       t.textContent = ch.toUpperCase();
       word.appendChild(t);
     });
-    h1.appendChild(word);
+    link.appendChild(word);
   });
 })();
 
